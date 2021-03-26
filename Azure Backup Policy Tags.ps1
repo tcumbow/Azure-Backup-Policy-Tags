@@ -14,7 +14,7 @@ if ($LocalDevMode) {
     if (-not $GLOBAL:CheckedDependenciesForAzureBackupPolicyTags)
     {
         Install-Module Az.Resources -Scope CurrentUser
-        # Install-Module Az.Compute -Scope CurrentUser
+        Install-Module Az.RecoveryServices -Scope CurrentUser -Force
         $GLOBAL:CheckedDependenciesForAzureBackupPolicyTags = $true
     }
 }
@@ -113,6 +113,15 @@ try
             Log -Warning "[$($Resource.Name)]: Failed to get tag, skipping this resource."
             continue
         }
+
+		# Enact backup policy based on tag
+		if ($PolicyText -eq "SpecialPolicy") {
+			$targetVaultID = Get-AzRecoveryServicesVault -ResourceGroupName "Sandbox" -Name "Test-Vault" | select -ExpandProperty ID
+			Log "VaultID $VaultID"
+			$PolicyObject = Get-AzRecoveryServicesBackupProtectionPolicy -Name "SpecialPolicy" -VaultId $targetVaultID
+			$PolicyObject | ConvertTo-Json | Log
+
+		}
     }
 
     Log "Finished processing Azure resources"
