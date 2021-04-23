@@ -39,8 +39,8 @@ try {
 	foreach ($resource in $AllResources) {
 		# Check for tag
 		if ($resource.Tags.BackupPolicy) {
-			$PolicyText = $resource.Tags.BackupPolicy
-			Log "[$($resource.Name)]: Found BackupPolicy tag with value: $PolicyText"
+			$PolicyTagText = $resource.Tags.BackupPolicy
+			Log "[$($resource.Name)]: Found BackupPolicy tag with value: $PolicyTagText"
 		}
 		else {
 			Log "[$($Resource.Name)]: Not tagged for backup policy. Skipping this resource."
@@ -48,13 +48,14 @@ try {
 		}
 
 		# Check that tag value was successfully obtained
-		if ($null -eq $PolicyText) {
+		if ($null -eq $PolicyTagText) {
 			Log -Warning "[$($Resource.Name)]: Failed to get tag, skipping this resource."
 			continue
 		}
 
 		# Enact backup policy based on tag
-		if ($PolicyText -eq "SpecialPolicy") {
+
+		if ($PolicyTagText -eq "SpecialPolicy") {
 			$VaultID = Get-AzRecoveryServicesVault -ResourceGroupName "Sandbox" -Name "Test-Vault" | Select-Object -ExpandProperty ID
 			Log "VaultID $VaultID"
 			$PolicyObject = Get-AzRecoveryServicesBackupProtectionPolicy -Name "SpecialPolicy" -VaultId $VaultID
