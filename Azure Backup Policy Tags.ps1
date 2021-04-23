@@ -21,7 +21,7 @@ function DetermineBackupPolicy ([string]$tag, $region) {
 try {
 	$ScriptStartTime = (Get-Date).ToUniversalTime()
 	Log "Runbook started."
-	if ($Simulate) {
+	if ($SimulationOnly) {
 		Log "*** Running in SIMULATE mode. No actions will be taken. ***"
 	}
 	else {
