@@ -38,7 +38,7 @@ try {
 	Log "Processing [$($AllResources.Count)] resources found in subscription"
 	foreach ($resource in $AllResources) {
 		# Check for tag
-		if ($resource.ResourceType -eq "Microsoft.Compute/virtualMachines" -and $resource.Tags.BackupPolicy) {
+		if ($resource.Tags.BackupPolicy) {
 			$PolicyText = $resource.Tags.BackupPolicy
 			Log "[$($resource.Name)]: Found BackupPolicy tag with value: $PolicyText"
 		}
