@@ -20,36 +20,9 @@ if ($LocalDevMode) {
 }
 
 # This is a custom function for logging - this is a workaround for the failed logging in Azure Runbooks
-function Log
-{
-	[CmdletBinding()]
-	param (
-		[Parameter(Mandatory=$true,ValueFromPipeline)]
-		[string]
-		$Text,
-		[Parameter(Mandatory=$false)]
-		[switch]
-		$Warning,
-		[Parameter(Mandatory=$false)]
-		[switch]
-		$Error
-	)
-	function UpsertTableEntity($TableName, $RowKey, $Entity) {
-		$StorageAccount = "tcumbowdartsandbox"
-		$SasToken = "?st=2021-03-21T14%3A52%3A00Z&se=2042-03-23T14%3A52%3A00Z&sp=rau&sv=2018-03-28&tn=runbooklogs&sig=jG6lhLojZ%2F74SJllghtxHuvasLiruIK0hCP%2FSJn8igY%3D"
-		$version = "2017-04-17"
-		$PartitionKey = ((get-date -format "yyyyMM").ToString())
-		$resource = "$tableName(PartitionKey='$PartitionKey',RowKey='$RowKey')$SasToken"
-		$table_url = "https://$StorageAccount.table.core.windows.net/$resource"
-		$GMTTime = (Get-Date).ToUniversalTime().toString('R')
-		$headers = @{
-			'x-ms-date'    = $GMTTime
-			"x-ms-version" = $version
-			Accept         = "application/json;odata=fullmetadata"
-		}
-		$body = $Entity | ConvertTo-Json
-		$item = Invoke-RestMethod -Method MERGE -Uri $table_url -Headers $headers -Body $body -ContentType application/json
-	}
+function Log ($Text) {
+	Write-Verbose -Message $Text -Verbose
+}
 
 	if ($Error) {Write-Error $Text}
 	elseif ($Warning) {Write-Warning $Text}
