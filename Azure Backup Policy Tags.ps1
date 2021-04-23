@@ -29,12 +29,11 @@ try {
 	}
 
 	# Authentication and connection
-	if (-not $LocalDevMode) {
-		$connectionName = "AzureRunAsConnection"
-		$servicePrincipalConnection=Get-AutomationConnection -Name $connectionName
-		$DummyVariable = $(Add-AzAccount -ServicePrincipal -TenantId $servicePrincipalConnection.TenantId -ApplicationId $servicePrincipalConnection.ApplicationId -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint)
-		Log "Successfully logged into Azure subscription using Az cmdlets..."
-	}
+	$connectionName = "AzureRunAsConnection"
+	$servicePrincipalConnection=Get-AutomationConnection -Name $connectionName
+	$DummyVariable = $(Add-AzAccount -ServicePrincipal -TenantId $servicePrincipalConnection.TenantId -ApplicationId $servicePrincipalConnection.ApplicationId -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint)
+	Log "Successfully logged into Azure subscription using Az cmdlets..."
+
 
 	Log "Getting all the resources from the subscription..."
 	$AllResources = Get-AzResource
