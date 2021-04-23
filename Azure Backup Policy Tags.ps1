@@ -38,7 +38,7 @@ try
     }
     else
     {
-        Log "*** Running in LIVE mode. Schedules will be enforced. ***"
+        Log "*** Running in LIVE mode. Policies will be enforced. ***"
     }
 
     # Authentication and connection
