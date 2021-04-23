@@ -53,7 +53,14 @@ try {
 			continue
 		}
 
+		# Pull region of resource
+
 		# Enact backup policy based on tag
+		$PolicyName = DetermineBackupPolicy $PolicyTagText $Region
+
+		if ($null -eq $PolicyName) {
+			
+		}
 
 		if ($PolicyTagText -eq "SpecialPolicy") {
 			$VaultID = Get-AzRecoveryServicesVault -ResourceGroupName "Sandbox" -Name "Test-Vault" | Select-Object -ExpandProperty ID
