@@ -11,27 +11,18 @@ function Log ($Text) {
 	Write-Verbose -Message $Text -Verbose
 }
 
-	if ($Error) {Write-Error $Text}
-	elseif ($Warning) {Write-Warning $Text}
-	elseif ($LocalDevMode) {Write-Host $Text}
-	else {Write-Verbose $Text}
-
-	if ($LocalDevMode) {return}
-
-	$HashTable = @{}
-    $HashTable.Add("Text",$Text)
-    $HashTable.Add("Level",$(if($Error){"Error"}elseif($Warning){"Warning"}else{"Verbose"}))
-	$HashTable.Add("ScriptName",$ScriptName)
-	$HashTable.Add("ScriptVersion",$ScriptVersion)
-	UpsertTableEntity -TableName "RunbookLogs" -RowKey ([guid]::NewGuid().ToString()) -Entity $HashTable
+# Define backup policies by tag and region
+function DetermineBackupPolicy ([string]$tag, $region)
+{
+	$processedTag = $tag.replace("BackupRP","Backup")
+	return "$region-$processedTag"
 }
-
 
 # Main runbook content
 try
 {
 	$ScriptStartTime = (Get-Date).ToUniversalTime()
-    Log "Runbook started. Version: $ScriptVersion"
+    Log "Runbook started."
     if($Simulate)
     {
         Log "*** Running in SIMULATE mode. No actions will be taken. ***"
