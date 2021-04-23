@@ -1,25 +1,12 @@
 # Tom Cumbow
+# Required module: Az.Resources
+# Required module: Az.RecoveryServices
 
 param(
     [parameter(Mandatory=$false)]
-    [bool]$Simulate = $true,
-    [parameter(Mandatory=$false)]
-    [switch]$LocalDevMode
+    [bool]$SimulationOnly = $false
 )
 
-$ScriptVersion = "0.0.1"
-$ScriptName = "Azure Backup Policy Tags.ps1"
-
-if ($LocalDevMode) {
-    if (-not $GLOBAL:CheckedDependenciesForAzureBackupPolicyTags)
-    {
-        Install-Module Az.Resources -Scope CurrentUser
-        Install-Module Az.RecoveryServices -Scope CurrentUser -Force
-        $GLOBAL:CheckedDependenciesForAzureBackupPolicyTags = $true
-    }
-}
-
-# This is a custom function for logging - this is a workaround for the failed logging in Azure Runbooks
 function Log ($Text) {
 	Write-Verbose -Message $Text -Verbose
 }
