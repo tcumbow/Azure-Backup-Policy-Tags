@@ -49,7 +49,7 @@ try {
 
 		# Check that tag value was successfully obtained
 		if ($null -eq $PolicyTagText) {
-			Log -Warning "[$($Resource.Name)]: Failed to get tag, skipping this resource."
+			Write-Warning "[$($Resource.Name)]: Failed to get tag, skipping this resource."
 			continue
 		}
 
@@ -78,7 +78,7 @@ try {
 }
 catch {
 	$errorMessage = $_.Exception.Message
-	Log -Error "SEVERE Unexpected exception: $errorMessage"
+	Write-Error "SEVERE Unexpected exception: $errorMessage"
 	throw "Unexpected exception: $errorMessage"
 }
 finally {
