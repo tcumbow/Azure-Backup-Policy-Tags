@@ -34,7 +34,6 @@ try {
 	$DummyVariable = $(Add-AzAccount -ServicePrincipal -TenantId $servicePrincipalConnection.TenantId -ApplicationId $servicePrincipalConnection.ApplicationId -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint)
 	Log "Successfully logged into Azure subscription using Az cmdlets..."
 
-
 	Log "Getting all the resources from the subscription..."
 	$AllResources = Get-AzResource
 
