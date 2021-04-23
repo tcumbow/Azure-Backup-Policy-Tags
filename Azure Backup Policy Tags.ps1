@@ -59,10 +59,9 @@ try {
 		$PolicyName = DetermineBackupPolicy $PolicyTagText $Region
 
 		if ($null -eq $PolicyName) {
-			
+			Write-Warning "Could not determine backup policy for resource [$($Resource.Name)] in region [$Region] with tag [$PolicyTagText]"
 		}
-
-		if ($PolicyTagText -eq "SpecialPolicy") {
+		else {
 			$VaultID = Get-AzRecoveryServicesVault -ResourceGroupName "Sandbox" -Name "Test-Vault" | Select-Object -ExpandProperty ID
 			Log "VaultID $VaultID"
 			$PolicyObject = Get-AzRecoveryServicesBackupProtectionPolicy -Name "SpecialPolicy" -VaultId $VaultID
@@ -73,7 +72,6 @@ try {
 			# Enable-AzRecoveryServicesBackupProtection -Policy $PolicyObject -Name $resource.Name -ResourceGroupName $resource.ResourceGroupName -VaultId $VaultID
 		}
 	}
-
 	Log "Finished processing Azure resources"
 }
 catch {
