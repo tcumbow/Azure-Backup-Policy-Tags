@@ -1,0 +1,8 @@
+Backup Policy is determined by:
+- Text in Tag
+- Region of resource
+
+Verify Resource type against first bit of text in tag
+
+Just modify text and search for vault with that name
+rather than building 1-1 mapping
