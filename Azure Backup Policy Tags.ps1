@@ -4,7 +4,7 @@
 
 param(
 	[parameter(Mandatory=$false)]
-	[bool]$SimulationOnly = $false
+	[bool]$SimulationOnly = $true
 )
 
 function Log ($Text) {
@@ -29,12 +29,25 @@ try {
 	}
 
 	# Authentication and connection
-	$connectionName = "AzureRunAsConnection"
-	$servicePrincipalConnection=Get-AutomationConnection -Name $connectionName
-	$DummyVariable = $(Add-AzAccount -ServicePrincipal -TenantId $servicePrincipalConnection.TenantId -ApplicationId $servicePrincipalConnection.ApplicationId -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint)
+	if ($env:COMPUTERNAME -eq "pks") {
+		connectdartcredentials.ps1
+		$CurrentPath = "C:\temp"
+	}
+	else {
+		$connectionName = "AzureRunAsConnection"
+		$servicePrincipalConnection=Get-AutomationConnection -Name $connectionName
+		$DummyVariable = $(Add-AzAccount -ServicePrincipal -TenantId $servicePrincipalConnection.TenantId -ApplicationId $servicePrincipalConnection.ApplicationId -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint)
 
+		$CurrentPath = (Get-Location).Path
+	}
+
+	# Verify subscription
+	$DateString = get-date -format "yyyy-MM-dd"
+	$SubscriptionName = (Get-AzContext).Subscription.Name
+	if ($SubscriptionName -ne "Dart Primary Azure Subscription") {Write-Error "Not in the correct subscription"; exit}
+
+	# Get all resources
 	$AllResources = Get-AzResource
-
 	Log "Processing [$($AllResources.Count)] resources found in subscription"
 	foreach ($resource in $AllResources) {
 		# Check for tag
@@ -68,7 +81,7 @@ try {
 			$PolicyObject | ConvertTo-Json | Log
 			$resource | ConvertTo-Json | Log
 			$ExistingBackupItem = Get-AzRecoveryServicesBackupItem -WorkloadType AzureVM -BackupManagementType AzureVM -Name $resource.Name -VaultId $VaultID
-			Enable-AzRecoveryServicesBackupProtection -Item $ExistingBackupItem -Policy $PolicyObject -VaultId $VaultID
+			# Enable-AzRecoveryServicesBackupProtection -Item $ExistingBackupItem -Policy $PolicyObject -VaultId $VaultID
 			# Enable-AzRecoveryServicesBackupProtection -Policy $PolicyObject -Name $resource.Name -ResourceGroupName $resource.ResourceGroupName -VaultId $VaultID
 		}
 	}
