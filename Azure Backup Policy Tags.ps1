@@ -16,22 +16,40 @@ function Main {
 	# Get all resources
 	$AllResources = Get-AzResource
 	Log "Processing [$($AllResources.Count)] resources found in subscription"
-	foreach ($resource in $AllResources) {
+	foreach ($EachResource in $AllResources) {
+
+		# Check if resource type can be backed up
+		if (-not (ResourceCanBeBackedUp $EachResource)) {
+			Log "[$($EachResource.Name)]: This resource type CANNOT be backed up; skipping..."
+			continue
+		}
+		Log "[$($EachResource.Name)]: This resource type can be backed up; processing..."
+
+		# Check if resource is already backed up somewhere
+		$BackupStatus = Get-AzRecoveryServicesBackupStatus -ResourceId $EachResource.ResourceId -ErrorAction Stop
+		if ($null -ne $BackupStatus.VaultId) {
+			Log "[$($EachResource.Name)]: This resource is already backed up in vault $($BackupStatus.VaultId)"
+			$ResourceIsAlreadyBackedUp = $true
+		}
+		else {
+			$ResourceIsAlreadyBackedUp = $false
+		}
+
 		# Check for tag
-		if ($resource.Tags.BackupPolicy) {
-			$PolicyTagText = $resource.Tags.BackupPolicy
-			Log "[$($resource.Name)]: Found BackupPolicy tag with value: $PolicyTagText"
+		if ($EachResource.Tags.BackupPolicy) {
+			$PolicyTagText = $EachResource.Tags.BackupPolicy
+			Log "[$($EachResource.Name)]: Found BackupPolicy tag with value: $PolicyTagText"
 			#TODO
 		}
 		else {
-			Log "[$($Resource.Name)]: BackupPolicy tag not found for this resource"
+			Log "[$($EachResource.Name)]: BackupPolicy tag not found for this resource"
 			#TODO
 			continue
 		}
 
 		# Check that tag value was successfully obtained
 		if ($null -eq $PolicyTagText) {
-			Write-Warning "[$($Resource.Name)]: BackupPolicy tag is an empty value"
+			Write-Warning "[$($EachResource.Name)]: BackupPolicy tag is an empty value"
 			#TODO
 			continue
 		}
@@ -42,24 +60,34 @@ function Main {
 		# $PolicyName = DetermineBackupPolicy $PolicyTagText $Region
 
 		# if ($null -eq $PolicyName) {
-		# 	Write-Warning "Could not determine backup policy for resource [$($Resource.Name)] in region [$Region] with tag [$PolicyTagText]"
+		# 	Write-Warning "Could not determine backup policy for resource [$($EachResource.Name)] in region [$Region] with tag [$PolicyTagText]"
 		# }
 		# else {
 		# 	$VaultID = Get-AzRecoveryServicesVault -ResourceGroupName "Sandbox" -Name "Test-Vault" | Select-Object -ExpandProperty ID
 		# 	Log "VaultID $VaultID"
 		# 	$PolicyObject = Get-AzRecoveryServicesBackupProtectionPolicy -Name "SpecialPolicy" -VaultId $VaultID
 		# 	$PolicyObject | ConvertTo-Json | Log
-		# 	$resource | ConvertTo-Json | Log
-		# 	$ExistingBackupItem = Get-AzRecoveryServicesBackupItem -WorkloadType AzureVM -BackupManagementType AzureVM -Name $resource.Name -VaultId $VaultID
+		# 	$EachResource | ConvertTo-Json | Log
+		# 	$ExistingBackupItem = Get-AzRecoveryServicesBackupItem -WorkloadType AzureVM -BackupManagementType AzureVM -Name $EachResource.Name -VaultId $VaultID
 		# 	# Enable-AzRecoveryServicesBackupProtection -Item $ExistingBackupItem -Policy $PolicyObject -VaultId $VaultID
-		# 	# Enable-AzRecoveryServicesBackupProtection -Policy $PolicyObject -Name $resource.Name -ResourceGroupName $resource.ResourceGroupName -VaultId $VaultID
+		# 	# Enable-AzRecoveryServicesBackupProtection -Policy $PolicyObject -Name $EachResource.Name -ResourceGroupName $EachResource.ResourceGroupName -VaultId $VaultID
 		# }
 	}
 	Log "Finished processing Azure resources"
+
+	Write-Host "Can't be backed up"
+	Write-Host $ArmTypesThatCannotBeBackedUp
+	Write-Host "Can be backed up"
+	Write-Host $ArmTypesThatCanBeBackedUp
 }
 
 function Log ($Text) {
 	Write-Verbose -Message $Text -Verbose
+}
+
+function ResourceCanBeBackedUp ($Resource) {
+	$ResourceTypesThatCanBeBackedUp = @("Microsoft.Storage/storageAccounts", "Microsoft.Compute/virtualMachines")
+	return ($Resource.ResourceType -in $ResourceTypesThatCanBeBackedUp)
 }
 
 # Define backup policies by tag and region
