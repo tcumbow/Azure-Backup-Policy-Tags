@@ -20,7 +20,7 @@ function Main {
 
 		# Check if resource type can be backed up
 		if (-not (ResourceCanBeBackedUp $EachResource)) {
-			Log "[$($EachResource.Name)]: This resource type CANNOT be backed up; skipping..."
+			# Log "[$($EachResource.Name)]: This resource type CANNOT be backed up; skipping..."
 			continue
 		}
 		Log "[$($EachResource.Name)]: This resource type can be backed up; processing..."
@@ -36,7 +36,7 @@ function Main {
 		}
 
 		# Check for tag
-		if ($EachResource.Tags.BackupPolicy) {
+		if ($EachResource.Tags.BackupPolicy -and ($null -ne $EachResource.Tags.BackupPolicy)) {
 			$PolicyTagText = $EachResource.Tags.BackupPolicy
 			Log "[$($EachResource.Name)]: Found BackupPolicy tag with value: $PolicyTagText"
 			#TODO
@@ -47,12 +47,14 @@ function Main {
 			continue
 		}
 
-		# Check that tag value was successfully obtained
-		if ($null -eq $PolicyTagText) {
-			Write-Warning "[$($EachResource.Name)]: BackupPolicy tag is an empty value"
-			#TODO
+		if ($PolicyTagText -like "No Backup Required") {
+			Log "[$($EachResource.Name)]: Skipping this resource"
+			#TODO maybe fix the tag if it is the wrong case
 			continue
 		}
+
+
+
 
 		# Pull region of resource
 
@@ -74,11 +76,6 @@ function Main {
 		# }
 	}
 	Log "Finished processing Azure resources"
-
-	Write-Host "Can't be backed up"
-	Write-Host $ArmTypesThatCannotBeBackedUp
-	Write-Host "Can be backed up"
-	Write-Host $ArmTypesThatCanBeBackedUp
 }
 
 function Log ($Text) {
