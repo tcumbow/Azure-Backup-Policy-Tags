@@ -7,6 +7,57 @@ param(
 	[bool]$SimulationOnly = $true
 )
 
+function Main {
+	# Verify subscription
+	$DateString = get-date -format "yyyy-MM-dd"
+	$SubscriptionName = (Get-AzContext).Subscription.Name
+	if ($SubscriptionName -ne "Dart Primary Azure Subscription") {Write-Error "Not in the correct subscription"; exit}
+
+	# Get all resources
+	$AllResources = Get-AzResource
+	Log "Processing [$($AllResources.Count)] resources found in subscription"
+	foreach ($resource in $AllResources) {
+		# Check for tag
+		if ($resource.Tags.BackupPolicy) {
+			$PolicyTagText = $resource.Tags.BackupPolicy
+			Log "[$($resource.Name)]: Found BackupPolicy tag with value: $PolicyTagText"
+			#TODO
+		}
+		else {
+			Log "[$($Resource.Name)]: BackupPolicy tag not found for this resource"
+			#TODO
+			continue
+		}
+
+		# Check that tag value was successfully obtained
+		if ($null -eq $PolicyTagText) {
+			Write-Warning "[$($Resource.Name)]: BackupPolicy tag is an empty value"
+			#TODO
+			continue
+		}
+
+		# Pull region of resource
+
+		# # Enact backup policy based on tag
+		# $PolicyName = DetermineBackupPolicy $PolicyTagText $Region
+
+		# if ($null -eq $PolicyName) {
+		# 	Write-Warning "Could not determine backup policy for resource [$($Resource.Name)] in region [$Region] with tag [$PolicyTagText]"
+		# }
+		# else {
+		# 	$VaultID = Get-AzRecoveryServicesVault -ResourceGroupName "Sandbox" -Name "Test-Vault" | Select-Object -ExpandProperty ID
+		# 	Log "VaultID $VaultID"
+		# 	$PolicyObject = Get-AzRecoveryServicesBackupProtectionPolicy -Name "SpecialPolicy" -VaultId $VaultID
+		# 	$PolicyObject | ConvertTo-Json | Log
+		# 	$resource | ConvertTo-Json | Log
+		# 	$ExistingBackupItem = Get-AzRecoveryServicesBackupItem -WorkloadType AzureVM -BackupManagementType AzureVM -Name $resource.Name -VaultId $VaultID
+		# 	# Enable-AzRecoveryServicesBackupProtection -Item $ExistingBackupItem -Policy $PolicyObject -VaultId $VaultID
+		# 	# Enable-AzRecoveryServicesBackupProtection -Policy $PolicyObject -Name $resource.Name -ResourceGroupName $resource.ResourceGroupName -VaultId $VaultID
+		# }
+	}
+	Log "Finished processing Azure resources"
+}
+
 function Log ($Text) {
 	Write-Verbose -Message $Text -Verbose
 }
@@ -41,51 +92,7 @@ try {
 		$CurrentPath = (Get-Location).Path
 	}
 
-	# Verify subscription
-	$DateString = get-date -format "yyyy-MM-dd"
-	$SubscriptionName = (Get-AzContext).Subscription.Name
-	if ($SubscriptionName -ne "Dart Primary Azure Subscription") {Write-Error "Not in the correct subscription"; exit}
-
-	# Get all resources
-	$AllResources = Get-AzResource
-	Log "Processing [$($AllResources.Count)] resources found in subscription"
-	foreach ($resource in $AllResources) {
-		# Check for tag
-		if ($resource.Tags.BackupPolicy) {
-			$PolicyTagText = $resource.Tags.BackupPolicy
-			Log "[$($resource.Name)]: Found BackupPolicy tag with value: $PolicyTagText"
-		}
-		else {
-			Log "[$($Resource.Name)]: Not tagged for backup policy. Skipping this resource."
-			continue
-		}
-
-		# Check that tag value was successfully obtained
-		if ($null -eq $PolicyTagText) {
-			Write-Warning "[$($Resource.Name)]: Failed to get tag, skipping this resource."
-			continue
-		}
-
-		# Pull region of resource
-
-		# Enact backup policy based on tag
-		$PolicyName = DetermineBackupPolicy $PolicyTagText $Region
-
-		if ($null -eq $PolicyName) {
-			Write-Warning "Could not determine backup policy for resource [$($Resource.Name)] in region [$Region] with tag [$PolicyTagText]"
-		}
-		else {
-			$VaultID = Get-AzRecoveryServicesVault -ResourceGroupName "Sandbox" -Name "Test-Vault" | Select-Object -ExpandProperty ID
-			Log "VaultID $VaultID"
-			$PolicyObject = Get-AzRecoveryServicesBackupProtectionPolicy -Name "SpecialPolicy" -VaultId $VaultID
-			$PolicyObject | ConvertTo-Json | Log
-			$resource | ConvertTo-Json | Log
-			$ExistingBackupItem = Get-AzRecoveryServicesBackupItem -WorkloadType AzureVM -BackupManagementType AzureVM -Name $resource.Name -VaultId $VaultID
-			# Enable-AzRecoveryServicesBackupProtection -Item $ExistingBackupItem -Policy $PolicyObject -VaultId $VaultID
-			# Enable-AzRecoveryServicesBackupProtection -Policy $PolicyObject -Name $resource.Name -ResourceGroupName $resource.ResourceGroupName -VaultId $VaultID
-		}
-	}
-	Log "Finished processing Azure resources"
+	Main
 }
 catch {
 	$errorMessage = $_.Exception.Message
