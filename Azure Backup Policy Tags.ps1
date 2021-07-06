@@ -13,6 +13,17 @@ function Main {
 	$SubscriptionName = (Get-AzContext).Subscription.Name
 	if ($SubscriptionName -ne "Dart Primary Azure Subscription") {Write-Error "Not in the correct subscription"; exit}
 
+	# Get Backup Vault/Policy info for later use
+	$Script:AllBackupVaults = Get-AzRecoveryServicesVault
+	$Script:AllBackupPoliciesByVault = @{}
+	foreach ($EachVault in $Script:AllBackupVaults) {
+        $ProtectionPolicies = Get-AzRecoveryServicesBackupProtectionPolicy -VaultId $EachVault.ID
+        $Script:AllBackupPoliciesByVault[$EachVault.ID] = $ProtectionPolicies
+    }
+
+	# $Script:AllBackupPoliciesByVault | ConvertTo-Json -Depth 100 -EnumsAsStrings | Out-Host
+	# exit
+
 	# Get all resources
 	$AllResources = Get-AzResource
 	Log "Processing [$($AllResources.Count)] resources found in subscription"
@@ -44,8 +55,9 @@ function Main {
 		else {
 			Log "[$($EachResource.Name)]: BackupPolicy tag not found for this resource"
 			#TODO
-			continue
 		}
+
+		#TODO add "custom" tag
 
 		if ($PolicyTagText -like "No Backup Required") {
 			Log "[$($EachResource.Name)]: Skipping this resource"
@@ -54,12 +66,9 @@ function Main {
 		}
 
 
-
-
-		# Pull region of resource
-
-		# # Enact backup policy based on tag
-		# $PolicyName = DetermineBackupPolicy $PolicyTagText $Region
+		# Enact backup policy based on tag
+		Log "asdfasdf"
+		$PolicyName = DetermineBackupPolicyAndVault $PolicyTagText $EachResource.Location
 
 		# if ($null -eq $PolicyName) {
 		# 	Write-Warning "Could not determine backup policy for resource [$($EachResource.Name)] in region [$Region] with tag [$PolicyTagText]"
@@ -88,7 +97,15 @@ function ResourceCanBeBackedUp ($Resource) {
 }
 
 # Define backup policies by tag and region
-function DetermineBackupPolicy ([string]$tag, $region) {
+function DetermineBackupPolicyAndVault ([string]$tag, $region) {
+	$PossibleBackupVaultsByLocation = $Script:AllBackupVaults | where {$_.Location -eq $region}
+	$PossibleBackupPoliciesByLocation = $PossibleBackupVaultsByLocation | ForEach-Object {$Script:AllBackupPoliciesByVault[$_.ID]}
+
+	$PossibleBackupPoliciesByLocation | ForEach-Object {Write-Host $_.Name}
+	Write-Host "Exitting"
+	exit
+	return $null
+
 	$processedTag = $tag.replace("BackupRP", "Backup")
 	return "$region-$processedTag"
 }
