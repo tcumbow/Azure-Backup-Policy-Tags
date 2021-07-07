@@ -8,6 +8,13 @@ param(
 )
 
 function Main {
+	# Testing Short-Circuit
+	$Vault, $Policy = DetermineBackupPolicyAndVault "AppSvcs01/VM-Daily" "northcentralus"
+
+	Write-Host "vault = $($Vault.Name)"
+	Write-Host "policy = $($Policy.Name)"
+	exit
+
 	# Verify subscription
 	$DateString = get-date -format "yyyy-MM-dd"
 	$SubscriptionName = (Get-AzContext).Subscription.Name
@@ -98,10 +105,57 @@ function ResourceCanBeBackedUp ($Resource) {
 
 # Define backup policies by tag and region
 function DetermineBackupPolicyAndVault ([string]$tag, $region) {
-	$PossibleBackupVaultsByLocation = $Script:AllBackupVaults | where {$_.Location -eq $region}
-	$PossibleBackupPoliciesByLocation = $PossibleBackupVaultsByLocation | ForEach-Object {$Script:AllBackupPoliciesByVault[$_.ID]}
+	$DesiredVaultTagText = $tag.Split('/')[0]
+	$DesiredPolicyTagText = $tag.Split('/')[1]
 
-	$PossibleBackupPoliciesByLocation | ForEach-Object {Write-Host $_.Name}
+	$PossibleBackupVaultsByLocation = $Script:AllBackupVaults | where {$_.Location -eq $region}
+	$PossibleBackupVaultsByLocationAndName = $PossibleBackupVaultsByLocation | where {$_.Name -like "*$DesiredVaultTagText"}
+	$CountOfPossibleVaults = $PossibleBackupVaultsByLocationAndName.Count
+	Log "Determining correct backup vault based on tag, found $CountOfPossibleVaults"
+	if ($CountOfPossibleVaults -eq 1) {
+		$CorrectVault = $PossibleBackupVaultsByLocationAndName[0]
+		Log "Correct vault is $($CorrectVault.Name)"
+		$PossibleBackupPolicies = $Script:AllBackupPoliciesByVault[$CorrectVault.ID]
+		$PossibleBackupPoliciesByName = $PossibleBackupPolicies | where {$_.Name.Split('BackupRP-')[1] -like $DesiredPolicyTagText}
+		$CountOfPossiblePolicies = $PossibleBackupPoliciesByName.Count
+		Log "Determining correct backup policy based on tag, found $CountOfPossiblePolicies"
+		if ($CountOfPossiblePolicies -eq 1) {
+			$CorrectPolicy = $PossibleBackupPoliciesByName[0]
+			Log "Determined correct backup policy: $($CorrectPolicy.Name)"
+			Write-Output $CorrectVault
+			return $CorrectPolicy
+		}
+		elseif ($CountOfPossiblePolicies -eq 0) {
+			Log "Could not find any policies that match tag=$tag and region=$region and vault=$($CorrectVault.Name)"
+		}
+		elseif ($CountOfPossiblePolicies -gt 1) {
+			Log "Found multiple policies that could match tag=$tag and region=$region and vault=$($CorrectVault.Name)"
+			$ArrayOfPolicyNames = $PossibleBackupPoliciesByName | % {$_.Name}
+			$StringOfPolicyNames = [string]::Join(",",$ArrayOfPolicyNames)
+			Log "Possible matches: $StringOfPolicyNames"
+		}
+		else {
+			Write-Error "Unknown error"
+			return $null
+		}
+	}
+	elseif ($CountOfPossibleVaults -eq 0) {
+		Log "Could not find any vaults that match tag=$tag and region=$region"
+		return $null
+	}
+	elseif ($CountOfPossibleVaults -gt 1) {
+		Log "Found multiple vaults that could match tag=$tag and region=$region"
+		$ArrayOfVaultNames = $PossibleBackupVaultsByLocationAndName | % {$_.Name}
+		$StringOfVaultNames = [string]::Join(",",$ArrayOfVaultNames)
+		Log "Possible matches: $StringOfVaultNames"
+		return $null
+	}
+	else {
+		Write-Error "Unknown error"
+		return $null
+	}
+
+	$PossibleBackupPoliciesByName | ForEach-Object {Write-Host $_.Name}
 	Write-Host "Exitting"
 	exit
 	return $null
