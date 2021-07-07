@@ -8,13 +8,6 @@ param(
 )
 
 function Main {
-	# Testing Short-Circuit
-	$Vault, $Policy = DetermineBackupPolicyAndVault "AppSvcs01/VM-Daily" "northcentralus"
-
-	Write-Host "vault = $($Vault.Name)"
-	Write-Host "policy = $($Policy.Name)"
-	exit
-
 	# Verify subscription
 	$DateString = get-date -format "yyyy-MM-dd"
 	$SubscriptionName = (Get-AzContext).Subscription.Name
@@ -44,6 +37,7 @@ function Main {
 		Log "[$($EachResource.Name)]: This resource type can be backed up; processing..."
 
 		# Check if resource is already backed up somewhere
+		#TODO verify that this works for MSSQL
 		$BackupStatus = Get-AzRecoveryServicesBackupStatus -ResourceId $EachResource.ResourceId -ErrorAction Stop
 		if ($null -ne $BackupStatus.VaultId) {
 			Log "[$($EachResource.Name)]: This resource is already backed up in vault $($BackupStatus.VaultId)"
@@ -73,9 +67,22 @@ function Main {
 		}
 
 
-		# Enact backup policy based on tag
-		Log "asdfasdf"
-		$PolicyName = DetermineBackupPolicyAndVault $PolicyTagText $EachResource.Location
+		# Determine backup vault/policy based on tag and location
+		$DeterminedVault, $DeterminedPolicy = DetermineBackupPolicyAndVault $PolicyTagText $EachResource.Location
+		if ($null -eq $DeterminedVault -or $null -eq $DeterminedPolicy) {
+			#TODO
+			Log "[$($EachResource.Name)]: Could not determine correct backup vault/policy for this resource, skipping..."
+			continue
+		}
+
+		# (At this point, we've determined what vault/policy SHOULD be used to backup this resources)
+		# Next up, check to see if the resource is already in a vault/policy
+
+		
+
+		Write-Host "vault = $($DeterminedVault.Name)"
+		Write-Host "policy = $($DeterminedPolicy.Name)"
+
 
 		# if ($null -eq $PolicyName) {
 		# 	Write-Warning "Could not determine backup policy for resource [$($EachResource.Name)] in region [$Region] with tag [$PolicyTagText]"
