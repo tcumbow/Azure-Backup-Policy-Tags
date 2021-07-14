@@ -8,6 +8,12 @@ param(
 )
 
 function Main {
+
+	#Test Code
+	CreateHashtableOfAllAzureResourcesAndWhichVaultAndPolicyIsCurrentlyBackingThemUp | ConvertTo-Json -Depth 100 -EnumsAsStrings
+	exit
+
+
 	# Verify subscription
 	$DateString = get-date -format "yyyy-MM-dd"
 	$SubscriptionName = (Get-AzContext).Subscription.Name
@@ -38,7 +44,7 @@ function Main {
 
 		# Check if resource is already backed up somewhere
 		#TODO verify that this works for MSSQL
-		$BackupStatus = Get-AzRecoveryServicesBackupStatus -ResourceId $EachResource.ResourceId -ErrorAction Stop
+		$BackupStatus = Get-AzRecoveryServicesBackupStatus -ResourceId $EachResource.ResourceId -ErrorAction Stop #TODO
 		if ($null -ne $BackupStatus.VaultId) {
 			Log "[$($EachResource.Name)]: This resource is already backed up in vault $($BackupStatus.VaultId)"
 			$ResourceIsAlreadyBackedUp = $true
@@ -68,7 +74,7 @@ function Main {
 
 
 		# Determine backup vault/policy based on tag and location
-		$DeterminedVault, $DeterminedPolicy = DetermineBackupPolicyAndVault $PolicyTagText $EachResource.Location
+		$DeterminedVault, $DeterminedPolicy = DetermineCorrectBackupPolicyAndVault $PolicyTagText $EachResource.Location
 		if ($null -eq $DeterminedVault -or $null -eq $DeterminedPolicy) {
 			#TODO
 			Log "[$($EachResource.Name)]: Could not determine correct backup vault/policy for this resource, skipping..."
@@ -110,8 +116,24 @@ function ResourceCanBeBackedUp ($Resource) {
 	return ($Resource.ResourceType -in $ResourceTypesThatCanBeBackedUp)
 }
 
-# Define backup policies by tag and region
-function DetermineBackupPolicyAndVault ([string]$tag, $region) {
+function CreateHashtableOfAllAzureResourcesAndWhichVaultAndPolicyIsCurrentlyBackingThemUp {
+	# Assumes that we are already authenticated to Azure and associated with a subscription
+	Get-AzRecoveryServicesVault | ForEach-Object -ThrottleLimit 20 -Parallel {
+		Get-AzRecoveryServicesBackupContainer -ContainerType AzureStorage -VaultId $_.ID -ErrorAction SilentlyContinue | Add-Member -PassThru -MemberType NoteProperty -Name "VaultID" -Value $_.ID
+		Get-AzRecoveryServicesBackupContainer -ContainerType AzureVM -VaultId $_.ID -ErrorAction SilentlyContinue | Add-Member -PassThru -MemberType NoteProperty -Name "VaultID" -Value $_.ID
+		Get-AzRecoveryServicesBackupContainer -ContainerType AzureSQL -VaultId $_.ID -ErrorAction SilentlyContinue | Add-Member -PassThru -MemberType NoteProperty -Name "VaultID" -Value $_.ID
+		Get-AzRecoveryServicesBackupContainer -ContainerType AzureVMAppContainer -VaultId $_.ID -ErrorAction SilentlyContinue | Add-Member -PassThru -MemberType NoteProperty -Name "VaultID" -Value $_.ID
+	} | ForEach-Object -ThrottleLimit 20 -Parallel {
+		Get-AzRecoveryServicesBackupItem -VaultId $_.VaultID -Container $_ -WorkloadType AzureFiles -ErrorAction SilentlyContinue | Add-Member -PassThru -MemberType NoteProperty -Name "VaultID" -Value $_.VaultID
+		Get-AzRecoveryServicesBackupItem -VaultId $_.VaultID -Container $_ -WorkloadType AzureSQLDatabase -ErrorAction SilentlyContinue | Add-Member -PassThru -MemberType NoteProperty -Name "VaultID" -Value $_.VaultID
+		Get-AzRecoveryServicesBackupItem -VaultId $_.VaultID -Container $_ -WorkloadType AzureVM -ErrorAction SilentlyContinue | Add-Member -PassThru -MemberType NoteProperty -Name "VaultID" -Value $_.VaultID
+		Get-AzRecoveryServicesBackupItem -VaultId $_.VaultID -Container $_ -WorkloadType FileFolder -ErrorAction SilentlyContinue | Add-Member -PassThru -MemberType NoteProperty -Name "VaultID" -Value $_.VaultID
+		Get-AzRecoveryServicesBackupItem -VaultId $_.VaultID -Container $_ -WorkloadType MSSQL -ErrorAction SilentlyContinue | Add-Member -PassThru -MemberType NoteProperty -Name "VaultID" -Value $_.VaultID
+	}
+
+}
+
+function DetermineCorrectBackupPolicyAndVault ([string]$tag, $region) {
 	$DesiredVaultTagText = $tag.Split('/')[0]
 	$DesiredPolicyTagText = $tag.Split('/')[1]
 
