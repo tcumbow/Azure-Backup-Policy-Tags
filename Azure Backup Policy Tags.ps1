@@ -118,6 +118,7 @@ function ResourceCanBeBackedUp ($Resource) {
 
 function CreateHashtableOfAllAzureResourcesAndWhichVaultAndPolicyIsCurrentlyBackingThemUp {
 	# Assumes that we are already authenticated to Azure and associated with a subscription
+	$HashTableToReturn = @{}
 	Get-AzRecoveryServicesVault | ForEach-Object -ThrottleLimit 20 -Parallel {
 		Get-AzRecoveryServicesBackupContainer -ContainerType AzureStorage -VaultId $_.ID -ErrorAction SilentlyContinue | Add-Member -PassThru -MemberType NoteProperty -Name "VaultID" -Value $_.ID
 		Get-AzRecoveryServicesBackupContainer -ContainerType AzureVM -VaultId $_.ID -ErrorAction SilentlyContinue | Add-Member -PassThru -MemberType NoteProperty -Name "VaultID" -Value $_.ID
@@ -129,8 +130,10 @@ function CreateHashtableOfAllAzureResourcesAndWhichVaultAndPolicyIsCurrentlyBack
 		Get-AzRecoveryServicesBackupItem -VaultId $_.VaultID -Container $_ -WorkloadType AzureVM -ErrorAction SilentlyContinue | Add-Member -PassThru -MemberType NoteProperty -Name "VaultID" -Value $_.VaultID
 		Get-AzRecoveryServicesBackupItem -VaultId $_.VaultID -Container $_ -WorkloadType FileFolder -ErrorAction SilentlyContinue | Add-Member -PassThru -MemberType NoteProperty -Name "VaultID" -Value $_.VaultID
 		Get-AzRecoveryServicesBackupItem -VaultId $_.VaultID -Container $_ -WorkloadType MSSQL -ErrorAction SilentlyContinue | Add-Member -PassThru -MemberType NoteProperty -Name "VaultID" -Value $_.VaultID
+	} | ForEach-Object {
+		if ($_.SourceResourceId) {$HashTableToReturn[$_.SourceResourceId] = @{VaultID = $_.VaultID; PolicyID = $_.PolicyID}}
 	}
-
+	return $HashTableToReturn
 }
 
 function DetermineCorrectBackupPolicyAndVault ([string]$tag, $region) {
