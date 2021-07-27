@@ -10,22 +10,20 @@ param(
 function Main {
 
 	#Test Code
-	CreateHashtableOfAllAzureResourcesAndWhichVaultAndPolicyIsCurrentlyBackingThemUp | ConvertTo-Json -Depth 100 -EnumsAsStrings
-	exit
-
+	$Script:HashtableOfResourcesWithCurrentBackupInfo = CreateHashtableOfAllAzureResourcesAndWhichVaultAndPolicyIsCurrentlyBackingThemUp
 
 	# Verify subscription
 	$DateString = get-date -format "yyyy-MM-dd"
 	$SubscriptionName = (Get-AzContext).Subscription.Name
 	if ($SubscriptionName -ne "Dart Primary Azure Subscription") {Write-Error "Not in the correct subscription"; exit}
 
-	# Get Backup Vault/Policy info for later use
-	$Script:AllBackupVaults = Get-AzRecoveryServicesVault
-	$Script:AllBackupPoliciesByVault = @{}
-	foreach ($EachVault in $Script:AllBackupVaults) {
-        $ProtectionPolicies = Get-AzRecoveryServicesBackupProtectionPolicy -VaultId $EachVault.ID
-        $Script:AllBackupPoliciesByVault[$EachVault.ID] = $ProtectionPolicies
-    }
+	# # Get Backup Vault/Policy info for later use
+	# $Script:AllBackupVaults = Get-AzRecoveryServicesVault
+	# $Script:AllBackupPoliciesByVault = @{}
+	# foreach ($EachVault in $Script:AllBackupVaults) {
+    #     $ProtectionPolicies = Get-AzRecoveryServicesBackupProtectionPolicy -VaultId $EachVault.ID
+    #     $Script:AllBackupPoliciesByVault[$EachVault.ID] = $ProtectionPolicies
+    # }
 
 	# $Script:AllBackupPoliciesByVault | ConvertTo-Json -Depth 100 -EnumsAsStrings | Out-Host
 	# exit
@@ -69,7 +67,6 @@ function Main {
 		if ($PolicyTagText -like "No Backup Required") {
 			Log "[$($EachResource.Name)]: Skipping this resource"
 			#TODO maybe fix the tag if it is the wrong case
-			continue
 		}
 
 
@@ -78,17 +75,22 @@ function Main {
 		if ($null -eq $DeterminedVault -or $null -eq $DeterminedPolicy) {
 			#TODO
 			Log "[$($EachResource.Name)]: Could not determine correct backup vault/policy for this resource, skipping..."
-			continue
 		}
 
 		# (At this point, we've determined what vault/policy SHOULD be used to backup this resources)
 		# Next up, check to see if the resource is already in a vault/policy
 
-		
 
+		#TODO remove this debug code
 		Write-Host "vault = $($DeterminedVault.Name)"
 		Write-Host "policy = $($DeterminedPolicy.Name)"
 
+		#TODO remove this debug code
+		Write-Host "Actual policy:"
+		$ActualPolicy = $Script:HashtableOfResourcesWithCurrentBackupInfo[$($EachResource.ResourceId)]
+		if ($null -ne $ActualPolicy) {$ActualPolicy | ConvertTo-Json -Depth 100 -EnumsAsStrings | Out-Host }
+
+		
 
 		# if ($null -eq $PolicyName) {
 		# 	Write-Warning "Could not determine backup policy for resource [$($EachResource.Name)] in region [$Region] with tag [$PolicyTagText]"
@@ -187,6 +189,7 @@ function DetermineCorrectBackupPolicyAndVault ([string]$tag, $region) {
 		return $null
 	}
 
+	#TODO get rid of code below
 	$PossibleBackupPoliciesByName | ForEach-Object {Write-Host $_.Name}
 	Write-Host "Exitting"
 	exit
