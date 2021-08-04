@@ -28,6 +28,21 @@ function Main {
 		}
 		Log "[$($EachResource.Name)]: This resource type can be backed up; processing..."
 
+		# Check for tag
+		if ($EachResource.Tags["Backup Type"] -and ($null -ne $EachResource.Tags["Backup Type"])) {
+			$PolicyTagText = $EachResource.Tags["Backup Type"]
+			Log "[$($EachResource.Name)]: Found Backup Type tag with value: $PolicyTagText"
+		}
+		else {
+			$PolicyTagText = $null
+			Log "[$($EachResource.Name)]: Backup Type tag not found on this resource; reporting..."
+			Report $EachResource "tag is blank"
+			continue
+		}
+
+
+
+
 		# Check if resource is already backed up somewhere
 		#TODO verify that this works for MSSQL
 		$BackupStatus = Get-AzRecoveryServicesBackupStatus -ResourceId $EachResource.ResourceId -ErrorAction Stop #TODO
@@ -39,16 +54,6 @@ function Main {
 			$ResourceIsAlreadyBackedUp = $false
 		}
 
-		# Check for tag
-		if ($EachResource.Tags.BackupPolicy -and ($null -ne $EachResource.Tags.BackupPolicy)) {
-			$PolicyTagText = $EachResource.Tags.BackupPolicy
-			Log "[$($EachResource.Name)]: Found BackupPolicy tag with value: $PolicyTagText"
-			#TODO
-		}
-		else {
-			Log "[$($EachResource.Name)]: BackupPolicy tag not found for this resource"
-			#TODO
-		}
 
 		if ($PolicyTagText -like "No Backup") {
 			#TODO maybe remove backup assignment if it is there
@@ -98,6 +103,11 @@ function Main {
 
 function Log ($Text) {
 	Write-Verbose -Message $Text -Verbose
+}
+
+function Report ($Resource, $InfoText, $Details = $null) {
+	Log "Reporting [$InfoText] for resource [$($Resource.Name)]"
+	#TODO
 }
 
 function ResourceCanBeBackedUp ($Resource) {
