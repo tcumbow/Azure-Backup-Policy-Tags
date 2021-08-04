@@ -9,24 +9,12 @@ param(
 
 function Main {
 
-	#Test Code
 	$Script:HashtableOfResourcesWithCurrentBackupInfo = CreateHashtableOfAllAzureResourcesAndWhichVaultAndPolicyIsCurrentlyBackingThemUp
 
-	# Verify subscription
 	$DateString = get-date -format "yyyy-MM-dd"
+	# Verify subscription
 	$SubscriptionName = (Get-AzContext).Subscription.Name
 	if ($SubscriptionName -ne "Dart Primary Azure Subscription") {Write-Error "Not in the correct subscription"; exit}
-
-	# # Get Backup Vault/Policy info for later use
-	# $Script:AllBackupVaults = Get-AzRecoveryServicesVault
-	# $Script:AllBackupPoliciesByVault = @{}
-	# foreach ($EachVault in $Script:AllBackupVaults) {
-    #     $ProtectionPolicies = Get-AzRecoveryServicesBackupProtectionPolicy -VaultId $EachVault.ID
-    #     $Script:AllBackupPoliciesByVault[$EachVault.ID] = $ProtectionPolicies
-    # }
-
-	# $Script:AllBackupPoliciesByVault | ConvertTo-Json -Depth 100 -EnumsAsStrings | Out-Host
-	# exit
 
 	# Get all resources
 	$AllResources = Get-AzResource
