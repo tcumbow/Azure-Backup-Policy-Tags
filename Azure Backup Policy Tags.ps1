@@ -62,9 +62,8 @@ function Main {
 			#TODO
 		}
 
-		#TODO add "custom" tag
-
-		if ($PolicyTagText -like "No Backup Required") {
+		if ($PolicyTagText -like "No Backup") {
+			#TODO maybe remove backup assignment if it is there
 			Log "[$($EachResource.Name)]: Skipping this resource"
 			#TODO maybe fix the tag if it is the wrong case
 		}
@@ -90,7 +89,7 @@ function Main {
 		$ActualPolicy = $Script:HashtableOfResourcesWithCurrentBackupInfo[$($EachResource.ResourceId)]
 		if ($null -ne $ActualPolicy) {$ActualPolicy | ConvertTo-Json -Depth 100 -EnumsAsStrings | Out-Host }
 
-		
+
 
 		# if ($null -eq $PolicyName) {
 		# 	Write-Warning "Could not determine backup policy for resource [$($EachResource.Name)] in region [$Region] with tag [$PolicyTagText]"
