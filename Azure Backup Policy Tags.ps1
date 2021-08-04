@@ -75,55 +75,8 @@ function Main {
 			}
 		}
 
-
-		# Check if resource is already backed up somewhere
-		#TODO verify that this works for MSSQL
-		$BackupStatus = Get-AzRecoveryServicesBackupStatus -ResourceId $EachResource.ResourceId -ErrorAction Stop #TODO
-		if ($null -ne $BackupStatus.VaultId) {
-			Log "[$($EachResource.Name)]: This resource is already backed up in vault $($BackupStatus.VaultId)"
-			$ResourceIsAlreadyBackedUp = $true
-		}
-		else {
-			$ResourceIsAlreadyBackedUp = $false
-		}
-
-
-		if ($PolicyTagText -like "No Backup") {
-			#TODO maybe remove backup assignment if it is there
-			Log "[$($EachResource.Name)]: Skipping this resource"
-			#TODO maybe fix the tag if it is the wrong case
-		}
-
-
-
-		# (At this point, we've determined what vault/policy SHOULD be used to backup this resources)
-		# Next up, check to see if the resource is already in a vault/policy
-
-
-		#TODO remove this debug code
-		Write-Host "vault = $($DeterminedVault.Name)"
-		Write-Host "policy = $($DeterminedPolicy.Name)"
-
-		#TODO remove this debug code
-		Write-Host "Actual policy:"
-		$ActualPolicy = $Script:HashtableOfResourcesWithCurrentBackupInfo[$($EachResource.ResourceId)]
-		if ($null -ne $ActualPolicy) {$ActualPolicy | ConvertTo-Json -Depth 100 -EnumsAsStrings | Out-Host }
-
-
-
-		# if ($null -eq $PolicyName) {
-		# 	Write-Warning "Could not determine backup policy for resource [$($EachResource.Name)] in region [$Region] with tag [$PolicyTagText]"
-		# }
-		# else {
-		# 	$VaultID = Get-AzRecoveryServicesVault -ResourceGroupName "Sandbox" -Name "Test-Vault" | Select-Object -ExpandProperty ID
-		# 	Log "VaultID $VaultID"
-		# 	$PolicyObject = Get-AzRecoveryServicesBackupProtectionPolicy -Name "SpecialPolicy" -VaultId $VaultID
-		# 	$PolicyObject | ConvertTo-Json | Log
-		# 	$EachResource | ConvertTo-Json | Log
-		# 	$ExistingBackupItem = Get-AzRecoveryServicesBackupItem -WorkloadType AzureVM -BackupManagementType AzureVM -Name $EachResource.Name -VaultId $VaultID
-		# 	# Enable-AzRecoveryServicesBackupProtection -Item $ExistingBackupItem -Policy $PolicyObject -VaultId $VaultID
-		# 	# Enable-AzRecoveryServicesBackupProtection -Policy $PolicyObject -Name $EachResource.Name -ResourceGroupName $EachResource.ResourceGroupName -VaultId $VaultID
-		# }
+		# Enable-AzRecoveryServicesBackupProtection -Item $ExistingBackupItem -Policy $PolicyObject -VaultId $VaultID
+		# Enable-AzRecoveryServicesBackupProtection -Policy $PolicyObject -Name $EachResource.Name -ResourceGroupName $EachResource.ResourceGroupName -VaultId $VaultID
 	}
 	Log "Finished processing Azure resources"
 }
