@@ -29,7 +29,7 @@ function Main {
 		Log "[$($EachResource.Name)]: This resource type can be backed up; processing..."
 
 		# Check for tag
-		if ($EachResource.Tags["Backup Type"] -and ($null -ne $EachResource.Tags["Backup Type"])) {
+		if ($null -ne $EachResource.Tags -and ($null -ne $EachResource.Tags["Backup Type"])) {
 			$PolicyTagText = $EachResource.Tags["Backup Type"]
 			Log "[$($EachResource.Name)]: Found Backup Type tag with value: $PolicyTagText"
 		}
