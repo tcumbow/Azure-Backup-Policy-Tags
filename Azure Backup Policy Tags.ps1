@@ -46,7 +46,29 @@ function Main {
 				Log "[$($EachResource.Name)]: This resource is tagged for 'no backup' and no backup is currently assigned; moving to next resource..."
 				continue
 			}
+			#TODO remove backup policy if applied
+		}
+		else {
+			# Attempt to determine backup vault/policy based on tag and location
+			$DeterminedVault, $DeterminedPolicy = DetermineCorrectBackupPolicyAndVault $PolicyTagText $EachResource.Location
+			if ($null -eq $DeterminedVault -or $null -eq $DeterminedPolicy) {
+				Log "[$($EachResource.Name)]: Tag not recognized; reporting..."
+				Report -Resource $EachResource -InfoText "tag invalid"
+				continue
+			}
 			else {
+				Log "[$($EachResource.Name)]: Tag recognized successfully"
+				# If assigned backup policy matches the policy determined by the tag, then no further action is required
+				if ($DeterminedVault.ID -eq $CurrentlyAssignedBackupVaultAndPolicy.VaultID -and $DeterminedPolicy.ID -eq $CurrentlyAssignedBackupVaultAndPolicy.PolicyID) {
+					Log "[$($EachResource.Name)]: Correct policy is already applied; moving on to next resource..."
+					continue
+				}
+				# If assigned backup policy is wrong, remove it
+				elseif ($null -ne $CurrentlyAssignedBackupVaultAndPolicy) {
+					Log "[$($EachResource.Name)]: Incorrect backup policy applied [VaultID] $($CurrentlyAssignedBackupVaultAndPolicy.VaultID) [PolicyID] $($CurrentlyAssignedBackupVaultAndPolicy.PolicyID)"
+					#TODO remove backup policy
+				}
+				# At this point, we can assume that no backup policy was assigned, or it was wrong and we removed it
 				
 			}
 		}
@@ -71,12 +93,6 @@ function Main {
 		}
 
 
-		# Determine backup vault/policy based on tag and location
-		$DeterminedVault, $DeterminedPolicy = DetermineCorrectBackupPolicyAndVault $PolicyTagText $EachResource.Location
-		if ($null -eq $DeterminedVault -or $null -eq $DeterminedPolicy) {
-			#TODO
-			Log "[$($EachResource.Name)]: Could not determine correct backup vault/policy for this resource, skipping..."
-		}
 
 		# (At this point, we've determined what vault/policy SHOULD be used to backup this resources)
 		# Next up, check to see if the resource is already in a vault/policy
