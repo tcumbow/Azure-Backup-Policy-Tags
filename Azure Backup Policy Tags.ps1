@@ -69,7 +69,9 @@ function Main {
 					#TODO remove backup policy
 				}
 				# At this point, we can assume that no backup policy was assigned, or it was wrong and we removed it
-				
+				Log "[$($EachResource.Name)]: Attempting to assign backup policy $($DeterminedPolicy.ID)"
+				#TODO assign backup policy
+				#TODO verify backup policy
 			}
 		}
 
