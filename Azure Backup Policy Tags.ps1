@@ -36,11 +36,20 @@ function Main {
 		else {
 			$PolicyTagText = $null
 			Log "[$($EachResource.Name)]: Backup Type tag not found on this resource; reporting..."
-			Report $EachResource "tag is blank"
+			Report -Resource $EachResource -InfoText "tag is blank"
 			continue
 		}
 
-
+		if ($PolicyTagText -like "No Backup") {
+			$CurrentlyAssignedBackupVaultAndPolicy = $Script:HashtableOfResourcesWithCurrentBackupInfo[$EachResource.ResourceId]
+			if ($null -eq $CurrentlyAssignedBackupVaultAndPolicy) {
+				Log "[$($EachResource.Name)]: This resource is tagged for 'no backup' and no backup is currently assigned; moving to next resource..."
+				continue
+			}
+			else {
+				
+			}
+		}
 
 
 		# Check if resource is already backed up somewhere
